@@ -1,6 +1,6 @@
 {
   "name": "@data-fair/processing-france-parcelles-coords",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "description": "Create the master-data dataset cadastre-parcelles-coords that links codes with coordinates from France's open-data.",
   "main": "index.js",
   "scripts": {
