@@ -46,7 +46,7 @@ describe('France parcelles coords processing', () => {
     const pluginConfig = {}
     const processingConfig = {
       datasetMode: 'create',
-      dataset: { title: 'france parcelles test' },
+      dataset: { title: 'france parcelles test', id: 'cadastre-parcelles-coords' },
       deps: ['976']
     }
     const log = {

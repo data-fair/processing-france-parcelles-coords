@@ -67,8 +67,7 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
   let dataset
   if (processingConfig.datasetMode === 'create') {
     await log.step('Création du jeu de données')
-    dataset = (await axios.post('api/v1/datasets', {
-      id: processingConfig.dataset.id,
+    const body = {
       title: processingConfig.dataset.title,
       isRest: true,
       schema: datasetSchema,
@@ -89,7 +88,18 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
         }]
       },
       extras: { processingId }
-    })).data
+    }
+    if (processingConfig.dataset.id) {
+      try {
+        await axios.get(`api/v1/datasets/${processingConfig.dataset.id}`)
+        throw new Error('le jeu de données existe déjà')
+      } catch (err) {
+        if (err.status !== 404) throw err
+      }
+      dataset = (await axios.put('api/v1/datasets/' + processingConfig.dataset.id, body)).data
+    } else {
+      dataset = (await axios.post('api/v1/datasets', body)).data
+    }
     await log.info(`jeu de donnée créé, id="${dataset.id}", title="${dataset.title}"`)
     await patchConfig({ datasetMode: 'update', dataset: { id: dataset.id, title: dataset.title } })
   } else if (processingConfig.datasetMode === 'update') {
