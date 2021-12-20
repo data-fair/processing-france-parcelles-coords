@@ -120,9 +120,10 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
     await log.info('aucune publication traitée précédemment, traite toutes les dates')
   }
 
-  for (const date of dates) {
-    for (const dep of processingConfig.deps) {
-      await log.step(`traitement de la publication date=${date} dep=${dep}`)
+  for (const dep of processingConfig.deps) {
+    await log.step(`traitement du département ${dep}`)
+    const coords = {}
+    for (const date of dates) {
       let tmpFile
       try {
         tmpFile = await fetch(axios, log, date, dep, tmpDir)
@@ -133,7 +134,6 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
         }
         throw err
       }
-      const bulk = []
       await pump(
         fs.createReadStream(tmpFile),
         zlib.createUnzip(),
@@ -141,25 +141,26 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
           objectMode: true,
           write (parcelle, encoding, callback) {
             const point = pointOnFeature(parcelle)
-            bulk.push({
-              _id: parcelle.properties.id,
-              code: parcelle.properties.id,
-              coord: `${point.geometry.coordinates[1]},${point.geometry.coordinates[0]}`
-            })
+            coords[parcelle.properties.id] = `${point.geometry.coordinates[1]},${point.geometry.coordinates[0]}`
             callback()
           }
-        }))
-      await log.info(`envoi de ${bulk.length} lignes vers le jeu de données`)
-      while (bulk.length) {
-        const lines = bulk.splice(0, 1000)
-        const res = await axios.post(`api/v1/datasets/${dataset.id}/_bulk_lines`, lines)
-        if (res.data.nbErrors) {
-          log.error(`${res.data.nbErrors} échecs sur ${lines.length} lignes à insérer`, res.data.errors)
-          throw new Error('échec à l\'insertion des lignes dans le jeu de données')
-        }
+        })
+      )
+    }
+    const bulk = Object.keys(coords).map(code => ({
+      _id: code,
+      code,
+      coord: coords[code]
+    }))
+    await log.info(`envoi de ${bulk.length} lignes vers le jeu de données`)
+    while (bulk.length) {
+      const lines = bulk.splice(0, 1000)
+      const res = await axios.post(`api/v1/datasets/${dataset.id}/_bulk_lines`, lines)
+      if (res.data.nbErrors) {
+        log.error(`${res.data.nbErrors} échecs sur ${lines.length} lignes à insérer`, res.data.errors)
+        throw new Error('échec à l\'insertion des lignes dans le jeu de données')
       }
-      await patchConfig({ lastDate: date })
-      console.log(bulk)
     }
   }
+  await patchConfig({ lastDate: dates[dates.length[-1]] })
 }
