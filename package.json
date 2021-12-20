@@ -1,0 +1,40 @@
+{
+  "name": "@data-fair/processing-france-parcelles-coords",
+  "version": "0.0.0",
+  "description": "Create the master-data dataset cadastre-parcelles-coords that links codes with coordinates from France's open-data.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha",
+    "lint": "eslint --ignore-path .gitignore .",
+    "lint-fix": "eslint --ignore-path .gitignore --fix ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/data-fair/processing-france-parcelles-coords.git"
+  },
+  "keywords": [
+    "data-fair-processings-plugin"
+  ],
+  "author": "Alban Mouton <alban.mouton@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/data-fair/processing-france-parcelles-coords/issues"
+  },
+  "homepage": "https://github.com/data-fair/processing-france-parcelles-coords#readme",
+  "devDependencies": {
+    "axios": "^0.21.1",
+    "chalk": "^4.1.0",
+    "config": "^3.3.6",
+    "eslint": "^7.18.0",
+    "mocha": "^8.2.1",
+    "moment": "^2.29.1",
+    "standard": "^16.0.3"
+  },
+  "dependencies": {
+    "@turf/point-on-feature": "^6.5.0",
+    "fs-extra": "^10.0.0",
+    "JSONStream": "^1.3.5",
+    "pump": "^3.0.0",
+    "zlib": "^1.0.5"
+  }
+}
