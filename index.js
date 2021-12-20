@@ -110,7 +110,7 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
   }
 
   await log.step('Vérification des dates de publication')
-  const datesHtml = (await axios.get('https://cadastre.data.gouv.fr/data/etalab-cadastre')).data
+  const datesHtml = (await axios.get('https://cadastre.data.gouv.fr/data/etalab-cadastre/')).data
   let dates = [...new Set([...datesHtml.matchAll(/[0-9]{4}-[0-9]{2}-[0-9]{2}/g)].map(m => m[0]))].sort()
   await log.info('dates de publications : ' + dates.join(', '))
   if (processingConfig.lastDate) {
