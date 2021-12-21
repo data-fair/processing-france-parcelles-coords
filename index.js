@@ -124,10 +124,16 @@ exports.run = async ({ processingConfig, processingId, dir, tmpDir, axios, log, 
   await log.info('dates de publications : ' + dates.join(', '))
 
   const lastProcessedDatesPath = path.join(dir, 'last-processed-dates.json')
-  const lastProcessedDates = await fs.pathExists(lastProcessedDatesPath) ? await fs.readJson(lastProcessedDatesPath) : {}
+  let lastProcessedDates = {}
+  if (await fs.pathExists(lastProcessedDatesPath)) {
+    lastProcessedDates = await fs.readJson(lastProcessedDatesPath)
+    for (const key in lastProcessedDates) {
+      await log.info(`dernière date de traitement pour le département ${key} = ${lastProcessedDates[key]}`)
+    }
+  }
 
   for (const dep of processingConfig.deps) {
-    await log.step(`traitement du département ${dep}`)
+    await log.step(`Traitement du département ${dep}`)
     const coords = {}
     const lastProcessedDate = lastProcessedDates[dep]
     if (lastProcessedDate) await log.info(`ce département a déjà été traité jusqu'à la date ${lastProcessedDate}`)
