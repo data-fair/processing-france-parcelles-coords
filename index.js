@@ -63,6 +63,8 @@ const fetch = async (axios, log, date, dep, tmpDir) => {
   return tmpFile
 }
 
+let _stopped
+
 exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patchConfig }) => {
   let dataset
   if (processingConfig.datasetMode === 'create') {
@@ -124,6 +126,7 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
     await log.step(`traitement du département ${dep}`)
     const coords = {}
     for (const date of dates) {
+      if (_stopped) return await log.info('interruption demandée')
       let tmpFile
       try {
         tmpFile = await fetch(axios, log, date, dep, tmpDir)
@@ -154,6 +157,7 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
     }))
     await log.info(`envoi de ${bulk.length} lignes vers le jeu de données`)
     while (bulk.length) {
+      if (_stopped) return await log.info('interruption demandée')
       const lines = bulk.splice(0, 1000)
       const res = await axios.post(`api/v1/datasets/${dataset.id}/_bulk_lines`, lines)
       if (res.data.nbErrors) {
@@ -163,4 +167,8 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
     }
   }
   await patchConfig({ lastDate: dates[dates.length[-1]] })
+}
+
+exports.stop = async () => {
+  _stopped = true
 }
