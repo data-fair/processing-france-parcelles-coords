@@ -48,14 +48,5 @@
         }
       }
     }
-  }, {
-    "title": "État",
-    "properties": {
-      "lastDate": {
-        "type": "string",
-        "title": "Dernière date de publication du cadastre traitée",
-        "readOnly": true
-      }
-    }
   }]
 }

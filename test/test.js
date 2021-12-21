@@ -41,12 +41,12 @@ describe('France parcelles coords processing', () => {
   })
 
   it('should run a task', async function () {
-    this.timeout(120000)
+    this.timeout(200000)
 
     const pluginConfig = {}
     const processingConfig = {
       datasetMode: 'create',
-      dataset: { title: 'france parcelles test', id: 'cadastre-parcelles-coords' },
+      dataset: { title: 'france parcelles test', id: 'cadastre-parcelles-coords-test' },
       deps: ['976']
     }
     const log = {
@@ -63,7 +63,8 @@ describe('France parcelles coords processing', () => {
       Object.assign(processingConfig, patch)
     }
     await fs.ensureDir('data/tmp')
-    await processing.run({ pluginConfig, processingConfig, axios: axiosInstance, log, patchConfig, tmpDir: 'data/tmp' })
+    await fs.ensureDir('data/dir')
+    await processing.run({ pluginConfig, processingConfig, axios: axiosInstance, log, patchConfig, dir: 'data/dir', tmpDir: 'data/tmp' })
     assert.equal(processingConfig.datasetMode, 'update')
     const datasetId = processingConfig.dataset.id
     assert.ok(datasetId.startsWith('france-parcelles-test'))

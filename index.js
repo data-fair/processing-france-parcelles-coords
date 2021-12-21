@@ -43,17 +43,24 @@ const fetch = async (axios, log, date, dep, tmpDir) => {
 
   // this is used only in dev
   if (await fs.pathExists(tmpFile)) {
-    await log.info('Le fichier existe déjà')
+    await log.info(`Le fichier ${tmpFile} existe déjà`)
     return tmpFile
   }
 
   // creating empty file before streaming seems to fix some weird bugs with NFS
   await fs.ensureFile(tmpFile)
-
   const url = `https://cadastre.data.gouv.fr/data/etalab-cadastre/${date}/geojson/departements/${dep}/cadastre-${dep}-parcelles.json.gz`
   await log.info('Télécharge le fichier ' + url)
-  const res = await axios.get(url, { responseType: 'stream' })
-  await pump(res.data, fs.createWriteStream(tmpFile))
+  try {
+    const res = await axios.get(url, { responseType: 'stream' })
+    await pump(res.data, fs.createWriteStream(tmpFile))
+  } catch (err) {
+    if (err.status === 404) {
+      await fs.remove(tmpFile)
+      return
+    }
+    throw err
+  }
 
   // Try to prevent weird bug with NFS by forcing syncing file before reading it
   const fd = await fs.open(tmpFile, 'r')
@@ -65,7 +72,7 @@ const fetch = async (axios, log, date, dep, tmpDir) => {
 
 let _stopped
 
-exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patchConfig }) => {
+exports.run = async ({ processingConfig, processingId, dir, tmpDir, axios, log, patchConfig }) => {
   let dataset
   if (processingConfig.datasetMode === 'create') {
     await log.step('Création du jeu de données')
@@ -113,30 +120,26 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
 
   await log.step('Vérification des dates de publication')
   const datesHtml = (await axios.get('https://cadastre.data.gouv.fr/data/etalab-cadastre/')).data
-  let dates = [...new Set([...datesHtml.matchAll(/[0-9]{4}-[0-9]{2}-[0-9]{2}/g)].map(m => m[0]))].sort()
+  const dates = [...new Set([...datesHtml.matchAll(/[0-9]{4}-[0-9]{2}-[0-9]{2}/g)].map(m => m[0]))].sort()
   await log.info('dates de publications : ' + dates.join(', '))
-  if (processingConfig.lastDate) {
-    await log.info('date de la dernière publication traitée : ' + processingConfig.lastDate)
-    dates = dates.filter(d => d > processingConfig.lastDate)
-  } else {
-    await log.info('aucune publication traitée précédemment, traite toutes les dates')
-  }
+
+  const lastProcessedDatesPath = path.join(dir, 'last-processed-dates.json')
+  const lastProcessedDates = await fs.pathExists(lastProcessedDatesPath) ? await fs.readJson(lastProcessedDatesPath) : {}
 
   for (const dep of processingConfig.deps) {
     await log.step(`traitement du département ${dep}`)
     const coords = {}
-    for (const date of dates) {
+    const lastProcessedDate = lastProcessedDates[dep]
+    if (lastProcessedDate) await log.info(`ce département a déjà été traité jusqu'à la date ${lastProcessedDate}`)
+    const depDates = lastProcessedDate ? dates.filter(d => d > lastProcessedDate) : dates
+    for (const date of depDates) {
       if (_stopped) return await log.info('interruption demandée')
-      let tmpFile
-      try {
-        tmpFile = await fetch(axios, log, date, dep, tmpDir)
-      } catch (err) {
-        if (err.status === 404) {
-          await log.info('Pas de fichier trouvé')
-          continue
-        }
-        throw err
+      const tmpFile = await fetch(axios, log, date, dep, tmpDir)
+      if (!tmpFile) {
+        await log.info('Pas de fichier trouvé')
+        continue
       }
+
       await pump(
         fs.createReadStream(tmpFile),
         zlib.createUnzip(),
@@ -165,8 +168,9 @@ exports.run = async ({ processingConfig, processingId, tmpDir, axios, log, patch
         throw new Error('échec à l\'insertion des lignes dans le jeu de données')
       }
     }
+    lastProcessedDates[dep] = dates[dates.length[-1]]
+    await fs.writeJson(lastProcessedDatesPath, lastProcessedDates, { spaces: 2 })
   }
-  await patchConfig({ lastDate: dates[dates.length[-1]] })
 }
 
 exports.stop = async () => {
