@@ -168,7 +168,7 @@ exports.run = async ({ processingConfig, processingId, dir, tmpDir, axios, log, 
         throw new Error('échec à l\'insertion des lignes dans le jeu de données')
       }
     }
-    lastProcessedDates[dep] = dates[dates.length[-1]]
+    lastProcessedDates[dep] = dates[dates.length - 1]
     await fs.writeJson(lastProcessedDatesPath, lastProcessedDates, { spaces: 2 })
   }
 }
