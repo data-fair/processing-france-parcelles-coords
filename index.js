@@ -7,36 +7,63 @@ const JSONStream = require('JSONStream')
 const zlib = require('zlib')
 const pointOnFeature = require('@turf/point-on-feature')
 
-const datasetSchema = [
-  {
-    key: 'code',
-    title: 'Code parcelle',
-    type: 'string',
-    'x-refersTo': 'http://dbpedia.org/ontology/codeLandRegistry',
-    'x-capabilities': {
-      values: false,
-      textStandard: false,
-      text: false,
-      textAgg: false,
-      insensitive: false
-    }
+const baseDataset = {
+  isRest: true,
+  description: `Ce jeu de données contient les codes des parcelles du plan cadastral français associés à une coordonnée géographique simple (un point sur la parcelle). Il est conçu comme une donnée de référence permettant la géolocalisation des données qui contiennent un code parcelle.
+  
+Tous les codes parcelles connus sont présents, y compris ceux qui ont disparus des publications les plus récentes. De cette manière il est possible de géolocaliser des données qui référencent des parcelles expirées.`,
+  origin: 'https://cadastre.data.gouv.fr/datasets/cadastre-etalab',
+  license: {
+    title: 'Licence Ouverte / Open Licence',
+    href: 'https://www.etalab.gouv.fr/licence-ouverte-open-licence'
   },
-  {
-    key: 'coord',
-    title: 'Coordonnées parcelle',
-    type: 'string',
-    'x-refersTo': 'http://www.w3.org/2003/01/geo/wgs84_pos#lat_long',
-    'x-capabilities': {
-      index: false,
-      values: false,
-      textStandard: false,
-      text: false,
-      textAgg: false,
-      insensitive: false,
-      geoShape: false
+  schema: [
+    {
+      key: 'code',
+      title: 'Code parcelle',
+      type: 'string',
+      'x-refersTo': 'http://dbpedia.org/ontology/codeLandRegistry',
+      'x-capabilities': {
+        values: false,
+        textStandard: false,
+        text: false,
+        textAgg: false,
+        insensitive: false
+      }
+    },
+    {
+      key: 'coord',
+      title: 'Coordonnées parcelle',
+      type: 'string',
+      'x-refersTo': 'http://www.w3.org/2003/01/geo/wgs84_pos#lat_long',
+      'x-capabilities': {
+        index: false,
+        values: false,
+        textStandard: false,
+        text: false,
+        textAgg: false,
+        insensitive: false,
+        geoShape: false
+      }
     }
+  ],
+  masterData: {
+    bulkSearchs: [{
+      id: 'parcelle-coords',
+      title: 'Récupérer les positions de parcelles à partir de leurs codes.',
+      description: '',
+      input: [{
+        type: 'equals',
+        property: {
+          key: 'code',
+          title: 'Code parcelle',
+          type: 'string',
+          'x-refersTo': 'http://dbpedia.org/ontology/codeLandRegistry'
+        }
+      }]
+    }]
   }
-]
+}
 
 const fetch = async (axios, log, date, dep, tmpDir) => {
   const tmpFile = path.join(tmpDir, `${date}-${dep}.json.gz`)
@@ -77,25 +104,8 @@ exports.run = async ({ processingConfig, processingId, dir, tmpDir, axios, log, 
   if (processingConfig.datasetMode === 'create') {
     await log.step('Création du jeu de données')
     const body = {
+      ...baseDataset,
       title: processingConfig.dataset.title,
-      isRest: true,
-      schema: datasetSchema,
-      masterData: {
-        bulkSearchs: [{
-          id: 'parcelle-coords',
-          title: 'Récupérer les positions de parcelles à partir de leurs codes.',
-          description: '',
-          input: [{
-            type: 'equals',
-            property: {
-              key: 'code',
-              title: 'Code parcelle',
-              type: 'string',
-              'x-refersTo': 'http://dbpedia.org/ontology/codeLandRegistry'
-            }
-          }]
-        }]
-      },
       extras: { processingId }
     }
     if (processingConfig.dataset.id) {
