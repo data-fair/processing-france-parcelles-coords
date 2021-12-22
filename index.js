@@ -168,6 +168,7 @@ exports.run = async ({ processingConfig, processingId, dir, tmpDir, axios, log, 
           }
         })
       )
+      await fs.remove(tmpFile)
     }
     const bulk = Object.keys(coords).map(code => ({
       _id: code,
