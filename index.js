@@ -177,7 +177,7 @@ exports.run = async ({ processingConfig, processingId, dir, tmpDir, axios, log, 
     }))
     if (!bulk.length) {
       await log.info('aucune ligne à importer')
-      return
+      continue
     }
     await log.info(`envoi de ${bulk.length} lignes vers le jeu de données`)
     while (bulk.length) {
