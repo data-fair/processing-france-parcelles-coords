@@ -175,17 +175,22 @@ exports.run = async ({ processingConfig, processingId, dir, tmpDir, axios, log, 
       code,
       coord: coords[code]
     }))
+    if (!bulk.length) {
+      await log.info('aucune ligne à importer')
+      return
+    }
     await log.info(`envoi de ${bulk.length} lignes vers le jeu de données`)
     while (bulk.length) {
       if (_stopped) return await log.info('interruption demandée')
-      const lines = bulk.splice(0, 1000)
+      const lines = bulk.splice(0, 10000)
       const res = await axios.post(`api/v1/datasets/${dataset.id}/_bulk_lines`, lines)
       if (res.data.nbErrors) {
-        log.error(`${res.data.nbErrors} échecs sur ${lines.length} lignes à insérer`, res.data.errors)
+        await log.error(`${res.data.nbErrors} échecs sur ${lines.length} lignes à insérer`, res.data.errors)
         throw new Error('échec à l\'insertion des lignes dans le jeu de données')
       }
     }
     lastProcessedDates[dep] = dates[dates.length - 1]
+    await log.info(`mémorise la dernière date traitée ${dates[dates.length - 1]}`)
     await fs.writeJson(lastProcessedDatesPath, lastProcessedDates, { spaces: 2 })
   }
 }
