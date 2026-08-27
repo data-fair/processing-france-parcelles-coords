@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "x-display": "tabs",
+  "layout": "tabs",
   "allOf": [{
     "title": "Jeu de données",
     "oneOf": [{
@@ -24,10 +24,15 @@
         "datasetMode": { "type": "string", "const": "update" },
         "dataset": {
           "type": "object",
-          "x-fromUrl": "{context.dataFairUrl}/api/v1/datasets?q={q}&select=id,title&{context.ownerFilter}",
-          "x-itemsProp": "results",
-          "x-itemTitle": "title",
-          "x-itemKey": "id",
+          "layout": {
+            "getItems": {
+              "url": "${context.dataFairUrl}/api/v1/datasets?select=id,title&size=50&${context.ownerFilter}&raw=true",
+              "qSearchParam": "q",
+              "itemsResults": "data.results",
+              "itemTitle": "item.title",
+              "itemKey": "item.id"
+            }
+          },
           "properties": {
             "id": {"type": "string", "title": "Identifiant"},
             "title": {"type": "string", "title": "Titre"}
