@@ -239,7 +239,6 @@ export const run = async (context: ProcessingContext<ProcessingConfig>) => {
 
       const sendTask = `Envoi des lignes du département ${dep}`
       await log.task(sendTask)
-      await log.info(`envoi de ${coords.size} lignes vers le jeu de données`)
       let nbSent = 0
       let lines: { _id: string, code: string, coord: string }[] = []
       const sendLines = async () => {
